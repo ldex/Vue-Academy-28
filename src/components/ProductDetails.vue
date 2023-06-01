@@ -15,21 +15,28 @@
         <p>Fixed price? {{product.fixedPrice}}</p>
         <p>Discontinued? {{product.discontinued}}</p>
         <p>Modified date: {{product.modifiedDate }}</p>
+        <p>
+            <button @click="deleteWithConfirm">
+                Delete
+            </button>
+        </p>
       </div>
     </section>
   </div>
 </template>
 
 <script>
-import ProductService from '@/services/ProductService.js';
+import { mapState, mapActions } from 'vuex'
 
     export default {
         data () {
             return {
                 error: null,
-                loading: false,
-                product: null
+                loading: false
             }
+        },
+        computed: {
+            ...mapState(['product']), // map `this.product` to `this.$store.state.product`
         },
         props: {
             id: {
@@ -37,16 +44,22 @@ import ProductService from '@/services/ProductService.js';
                 required:true
             }
         },
+        methods: {
+            deleteWithConfirm() {
+                if (window.confirm('Are you sure ??')) {
+                    this.deleteProduct(this.product)
+                    .then(
+                        () => this.$router.push({ name: 'products'})
+                    )
+                    .catch(
+                        () => this.$router.push({ name: 'error'})
+                    )
+                }
+            },
+            ...mapActions(['fetchProduct','deleteProduct']) // map `this.fetchProduct(this.id)` to `this.$store.dispatch('fetchProduct', this.id)`
+        },
         created() {
-            this.loading = true;
-            ProductService.getProduct(this.id)
-                .then(response => {
-                this.product = response.data
-                })
-                .catch(error => {
-                this.error = error;
-                })
-                .finally(() => this.loading = false)
+            this.fetchProduct(this.id);
         }
     }
 </script>

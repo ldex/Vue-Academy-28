@@ -1,47 +1,48 @@
 <template>
-    <div>
-        <section v-if="error">
-            {{error.message}}
-        </section>
-        <section v-else>
-        <div v-if="loading">
-            <h2 class="loading">Loading products...</h2>
-        </div>
-        <product-list v-else :products="products" :page-size="5"></product-list>
-        </section>
-    </div>
+  <product-list :products="products" :page-size="5">
+      <template v-slot="slotProps">
+          <span>{{ slotProps.product.name }}</span> <span>({{ slotProps.product.price }}$)</span>
+      </template>
+  </product-list>
 </template>
 
 <script>
 import ProductList from '@/components/ProductList.vue';
-import ProductService from '@/services/ProductService.js';
+import { reactive, toRefs, computed, onErrorCaptured } from 'vue';
+import { useStore } from 'vuex';
 
 export default {
-  name: 'app',
-  components: {
-    ProductList
-  },
-  data() {
-    return {
-      products: [],
-      error: null,
-      loading: false
+    components: {
+        ProductList,
+    },
+    async setup () {
+        const store = useStore();
+
+        const state = reactive({
+            error: null,
+        });
+        const products = computed(() => {
+            return store.state.products;
+        });
+        const errorCaptured = onErrorCaptured((error) => {
+            console.error('Error in component: ', error.message);
+        });
+        const fetchProducts = async () => {
+            await store
+                .dispatch('fetchProducts')
+                .catch(error => {
+                    state.error = error;
+                });
+        }
+        await fetchProducts();
+        return {
+            products,
+            fetchProducts,
+            errorCaptured,
+            ...toRefs(state),
+        }
     }
-  },
-  created () {
-    this.loading = true;
-    ProductService.getProducts()
-      .then(response => {
-        this.products = response.data;
-      })
-      .catch(error => {
-        this.error = error;
-      })
-      .finally(() => this.loading = false);
-  },
 }
 </script>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>
